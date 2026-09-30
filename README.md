@@ -1,24 +1,39 @@
-# UPI Wallet (C++)
+# OOP Examples in C++
 
-This project implements the three classes from the lab specification:
+An independent C++17 learning repository based on the structure of the linked
+object-oriented programming reference material. It contains:
 
-- `Wallet` maintains a non-negative balance and an append-only transaction audit trail.
-- `Transaction` is an immutable credit/debit record.
-- `WalletAnalyzer` calculates credits, debits, and inclusive date-range expenditure.
+- Introductory classes: `Point` and a deterministic/testable number-guessing game.
+- Inheritance: `Employee` and `Manager` with virtual dispatch.
+- OOAD number duel: players, profiles, guesses, history, feedback, and game rules.
+- Polymorphism/sorting: `State` with natural population ordering and custom area ordering.
+- UPI wallet: balance constraints, transaction history, and analysis methods.
+- Mermaid class diagrams under `docs/diagrams/`.
 
-Amounts must be greater than zero. Invalid amounts and overdrafts throw
-`std::invalid_argument` before changing wallet state. The initial balance is not
-recorded as a transfer; only calls to `addMoney` and `deductMoney` create audit entries.
+The wallet uses `std::time_t` timestamps generated with `std::time(nullptr)`. Invalid
+amounts and overdrafts throw `std::invalid_argument` before changing wallet state.
 
-Transactions use `std::time_t` timestamps generated with `std::time(nullptr)`, avoiding
-the heavier `chrono` library while retaining real time values for date-range analysis.
+## Build and test
 
-The implementation uses C++17, CMake, and a dependency-free test executable.
-
-Run the tests with:
+CMake downloads GoogleTest through `FetchContent` during configuration. Build and run:
 
 ```text
 cmake -S . -B build
 cmake --build build
 ctest --test-dir build --output-on-failure
 ```
+
+The interactive examples are built as `intro_demo`, `number_guess_game`,
+`employee_tester`, `states_tester`, and `number_duel_app`.
+
+## Layout
+
+```text
+include/       public class headers
+src/           class implementations and example applications
+tests/         GoogleTest suites
+docs/diagrams/ Mermaid UML diagrams
+```
+
+The code is written as original C++ practice material; it does not copy the Java
+source layout or require Gradle.

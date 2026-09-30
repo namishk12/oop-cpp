@@ -1,0 +1,27 @@
+classDiagram
+    title UPI Wallet
+
+    Wallet "1" o-- "*" Transaction
+    Wallet "1" --o "1" WalletAnalyzer
+
+    class Transaction {
+        - string transactionId
+        - double amount
+        - bool creditTransaction
+        - time_t timestamp
+    }
+
+    class Wallet {
+        - string upiId
+        - double balance
+        - vector~Transaction~ transactions
+        + addMoney(double) void
+        + deductMoney(double) void
+    }
+
+    class WalletAnalyzer {
+        - Wallet wallet
+        + totalAmountCredited() double
+        + totalAmountDebited() double
+        + expenditureBetween(startTime, endTime) double
+    }

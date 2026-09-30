@@ -1,0 +1,18 @@
+classDiagram
+    direction RL
+
+    class Employee {
+        - string name
+        - double salary
+        + getName() string
+        + getSalary() double
+        + setSalary(double) void
+    }
+
+    class Manager {
+        - double bonus
+        + getSalary() double
+        + setBonus(double) void
+    }
+
+    Manager --|> Employee

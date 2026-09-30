@@ -1,0 +1,11 @@
+classDiagram
+    direction LR
+
+    class Vehicle
+    class Car
+    class Engine
+    class EngineOil
+
+    Car --|> Vehicle
+    Car "1" o-- "1" Engine
+    Engine ..> EngineOil

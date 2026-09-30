@@ -1,0 +1,35 @@
+classDiagram
+    class Player {
+        - string name
+        - int secretTarget
+        - int attemptCount
+        - PlayerProfile profile
+        - GuessHistory history
+        + makeGuess(int) Guess
+        + resetForNewGame() void
+    }
+
+    class PlayerProfile {
+        - int totalPoints
+        - int totalWins
+        - int totalGames
+    }
+
+    class GuessHistory {
+        - vector~HistoryEntry~ entries
+        + add(Guess, Feedback) void
+        + clear() void
+    }
+
+    class NumberDuelGame {
+        - Player activePlayer
+        - Player opponentPlayer
+        - bool gameOver
+        + startNewGame(Player, Player) void
+        + processTurn(int) Feedback
+    }
+
+    Player "1" *-- "1" PlayerProfile
+    Player "1" *-- "1" GuessHistory
+    GuessHistory "1" o-- "*" Guess
+    NumberDuelGame "1" o-- "2" Player

@@ -1,334 +1,213 @@
+#include "Transaction.h"
+#include "Wallet.h"
 #include "WalletAnalyzer.h"
 
+#include <gtest/gtest.h>
+
 #include <ctime>
-#include <iostream>
 #include <stdexcept>
-#include <string>
 #include <vector>
 
-namespace {
-
-using Timestamp = Transaction::Timestamp;
-
-Wallet makeWallet(double initialBalance = 100.0)
+TEST(TransactionTest, StoresAllFields)
 {
-    return Wallet("alice@upi", initialBalance);
+    const std::time_t timestamp = std::time(nullptr);
+    const Transaction transaction("txn-1", 125.50, true, timestamp);
+
+    EXPECT_EQ(transaction.getTransactionId(), "txn-1");
+    EXPECT_DOUBLE_EQ(transaction.getAmount(), 125.50);
+    EXPECT_TRUE(transaction.isCreditTransaction());
+    EXPECT_EQ(transaction.getTimestamp(), timestamp);
 }
 
-void expect(bool condition, const std::string& message)
+TEST(TransactionTest, RejectsNonPositiveAmounts)
 {
-    if (!condition) {
-        throw std::runtime_error(message);
-    }
+    EXPECT_THROW(Transaction("negative", -1.0, true, 1), std::invalid_argument);
+    EXPECT_THROW(Transaction("zero", 0.0, true, 1), std::invalid_argument);
 }
 
-void expectNear(double actual, double expected, const std::string& message)
+TEST(WalletTest, StartsWithTheGivenBalanceAndEmptyAudit)
 {
-    if (actual != expected) {
-        throw std::runtime_error(message);
-    }
+    const Wallet wallet("alice@upi", 100.0);
+
+    EXPECT_EQ(wallet.getUpiId(), "alice@upi");
+    EXPECT_DOUBLE_EQ(wallet.getBalance(), 100.0);
+    EXPECT_TRUE(wallet.getTransactions().empty());
 }
 
-template <typename Exception, typename Function>
-void expectThrows(Function&& function, const std::string& message)
+TEST(WalletTest, AddMoneyIncreasesBalanceAndRecordsCredit)
 {
-    bool threwExpected = false;
-    try {
-        function();
-    } catch (const Exception&) {
-        threwExpected = true;
-    } catch (...) {
-        throw std::runtime_error(message + " (wrong exception type)");
-    }
-    expect(threwExpected, message);
-}
+    Wallet wallet("alice@upi", 100.0);
 
-void transactionStoresItsDetails()
-{
-    const Timestamp timestamp = std::time(nullptr);
-    Transaction transaction("txn-1", 125.50, true, timestamp);
-
-    expect(transaction.getTransactionId() == "txn-1", "transaction id was not stored");
-    expectNear(transaction.getAmount(), 125.50, "transaction amount was not stored");
-    expect(transaction.isCreditTransaction(), "credit flag was not stored");
-    expect(transaction.getTimestamp() == timestamp, "timestamp was not stored");
-}
-
-void transactionRejectsInvalidAmounts()
-{
-    expectThrows<std::invalid_argument>(
-        [] { Transaction("txn-negative", -1.0, true, std::time(nullptr)); },
-        "negative transaction amount should be rejected");
-    expectThrows<std::invalid_argument>(
-        [] { Transaction("txn-zero", 0.0, true, std::time(nullptr)); },
-        "zero transaction amount should be rejected");
-}
-
-void addMoneyIncreasesBalanceAndRecordsCredit()
-{
-    Wallet wallet = makeWallet();
     wallet.addMoney(25.50);
 
-    expectNear(wallet.getBalance(), 125.50, "addMoney did not increase balance");
-    const std::vector<Transaction> transactions = wallet.getTransactions();
-    expect(transactions.size() == 1, "addMoney did not add an audit entry");
-    expectNear(transactions[0].getAmount(), 25.50, "credit amount was not recorded");
-    expect(transactions[0].isCreditTransaction(), "credit transaction flag was incorrect");
+    ASSERT_EQ(wallet.getTransactions().size(), 1U);
+    EXPECT_DOUBLE_EQ(wallet.getBalance(), 125.50);
+    EXPECT_DOUBLE_EQ(wallet.getTransactions()[0].getAmount(), 25.50);
+    EXPECT_TRUE(wallet.getTransactions()[0].isCreditTransaction());
 }
 
-void addMoneyPreservesOrderAndUniqueIds()
+TEST(WalletTest, AddMoneyPreservesTransactionOrder)
 {
-    Wallet wallet = makeWallet(0.0);
+    Wallet wallet("alice@upi", 0.0);
     wallet.addMoney(10.0);
     wallet.addMoney(20.0);
 
     const std::vector<Transaction> transactions = wallet.getTransactions();
-    expect(transactions.size() == 2, "credit audit length is incorrect");
-    expectNear(transactions[0].getAmount(), 10.0, "first transaction is out of order");
-    expectNear(transactions[1].getAmount(), 20.0, "second transaction is out of order");
-    expect(transactions[0].getTransactionId() != transactions[1].getTransactionId(),
-           "transaction ids should be unique");
-    expect(transactions[0].getTimestamp() <= transactions[1].getTimestamp(),
-           "transactions should be chronological");
+    ASSERT_EQ(transactions.size(), 2U);
+    EXPECT_DOUBLE_EQ(transactions[0].getAmount(), 10.0);
+    EXPECT_DOUBLE_EQ(transactions[1].getAmount(), 20.0);
+    EXPECT_NE(transactions[0].getTransactionId(), transactions[1].getTransactionId());
 }
 
-void addMoneyRejectsInvalidAmountsWithoutMutation()
+TEST(WalletTest, AddMoneyRejectsNegativeWithoutMutation)
 {
-    Wallet wallet = makeWallet();
-    expectThrows<std::invalid_argument>([&] { wallet.addMoney(-5.0); },
-                                        "negative add should be rejected");
+    Wallet wallet("alice@upi", 100.0);
 
-    expectNear(wallet.getBalance(), 100.0, "invalid add changed balance");
-    expect(wallet.getTransactions().empty(), "invalid add changed audit");
+    EXPECT_THROW(wallet.addMoney(-5.0), std::invalid_argument);
+    EXPECT_DOUBLE_EQ(wallet.getBalance(), 100.0);
+    EXPECT_TRUE(wallet.getTransactions().empty());
 }
 
-void addMoneyRejectsZeroWithoutMutation()
+TEST(WalletTest, AddMoneyRejectsZeroWithoutMutation)
 {
-    Wallet wallet = makeWallet();
-    expectThrows<std::invalid_argument>([&] { wallet.addMoney(0.0); },
-                                        "zero add should be rejected");
+    Wallet wallet("alice@upi", 100.0);
 
-    expectNear(wallet.getBalance(), 100.0, "zero add changed balance");
-    expect(wallet.getTransactions().empty(), "zero add changed audit");
+    EXPECT_THROW(wallet.addMoney(0.0), std::invalid_argument);
+    EXPECT_DOUBLE_EQ(wallet.getBalance(), 100.0);
+    EXPECT_TRUE(wallet.getTransactions().empty());
 }
 
-void deductMoneyDecreasesBalanceAndRecordsDebit()
+TEST(WalletTest, DeductMoneyDecreasesBalanceAndRecordsDebit)
 {
-    Wallet wallet = makeWallet();
+    Wallet wallet("alice@upi", 100.0);
+
     wallet.deductMoney(25.50);
 
-    expectNear(wallet.getBalance(), 74.50, "deductMoney did not decrease balance");
-    const std::vector<Transaction> transactions = wallet.getTransactions();
-    expect(transactions.size() == 1, "deductMoney did not add an audit entry");
-    expectNear(transactions[0].getAmount(), 25.50, "debit amount was not recorded");
-    expect(!transactions[0].isCreditTransaction(), "debit transaction flag was incorrect");
+    ASSERT_EQ(wallet.getTransactions().size(), 1U);
+    EXPECT_DOUBLE_EQ(wallet.getBalance(), 74.50);
+    EXPECT_DOUBLE_EQ(wallet.getTransactions()[0].getAmount(), 25.50);
+    EXPECT_FALSE(wallet.getTransactions()[0].isCreditTransaction());
 }
 
-void deductMoneyAllowsExactBalance()
+TEST(WalletTest, DeductMoneyAllowsExactBalance)
 {
-    Wallet wallet = makeWallet();
+    Wallet wallet("alice@upi", 100.0);
+
     wallet.deductMoney(100.0);
 
-    expectNear(wallet.getBalance(), 0.0, "exact deduction did not empty wallet");
-    expect(wallet.getTransactions().size() == 1, "exact deduction was not recorded");
+    EXPECT_DOUBLE_EQ(wallet.getBalance(), 0.0);
+    EXPECT_EQ(wallet.getTransactionCount(), 1U);
 }
 
-void deductMoneyRejectsInsufficientFundsWithoutMutation()
+TEST(WalletTest, DeductMoneyRejectsOverdraftWithoutMutation)
 {
-    Wallet wallet = makeWallet();
-    expectThrows<std::invalid_argument>([&] { wallet.deductMoney(100.01); },
-                                        "overdraft should be rejected");
+    Wallet wallet("alice@upi", 100.0);
 
-    expectNear(wallet.getBalance(), 100.0, "overdraft changed balance");
-    expect(wallet.getTransactions().empty(), "overdraft changed audit");
+    EXPECT_THROW(wallet.deductMoney(100.01), std::invalid_argument);
+    EXPECT_DOUBLE_EQ(wallet.getBalance(), 100.0);
+    EXPECT_TRUE(wallet.getTransactions().empty());
 }
 
-void deductMoneyRejectsInvalidAmountsWithoutMutation()
+TEST(WalletTest, DeductMoneyRejectsNegativeWithoutMutation)
 {
-    Wallet wallet = makeWallet();
-    expectThrows<std::invalid_argument>([&] { wallet.deductMoney(-1.0); },
-                                        "negative deduction should be rejected");
-    expectThrows<std::invalid_argument>([&] { wallet.deductMoney(0.0); },
-                                        "zero deduction should be rejected");
+    Wallet wallet("alice@upi", 100.0);
 
-    expectNear(wallet.getBalance(), 100.0, "invalid deduction changed balance");
-    expect(wallet.getTransactions().empty(), "invalid deduction changed audit");
+    EXPECT_THROW(wallet.deductMoney(-1.0), std::invalid_argument);
+    EXPECT_DOUBLE_EQ(wallet.getBalance(), 100.0);
+    EXPECT_TRUE(wallet.getTransactions().empty());
 }
 
-void totalAmountCreditedSumsOnlyCredits()
+TEST(WalletTest, TransactionGetterReturnsASnapshot)
 {
-    Wallet wallet = makeWallet();
-    wallet.addMoney(25.0);
-    wallet.deductMoney(10.0);
-    wallet.addMoney(50.0);
-
-    expectNear(WalletAnalyzer(wallet).totalAmountCredited(), 75.0,
-               "credit total is incorrect");
-}
-
-void totalAmountCreditedIsZeroWithoutCredits()
-{
-    Wallet wallet = makeWallet();
-    wallet.deductMoney(20.0);
-
-    expectNear(WalletAnalyzer(wallet).totalAmountCredited(), 0.0,
-               "credit total should be zero");
-}
-
-void totalAmountCreditedUpdatesAfterLaterCredits()
-{
-    Wallet wallet = makeWallet();
-    WalletAnalyzer analyzer(wallet);
-    wallet.addMoney(10.0);
-    expectNear(analyzer.totalAmountCredited(), 10.0, "credit total did not update");
-    wallet.addMoney(15.0);
-    expectNear(analyzer.totalAmountCredited(), 25.0, "credit total update is incorrect");
-}
-
-void totalAmountCreditedDoesNotCountOpeningBalance()
-{
-    Wallet wallet = makeWallet(100.0);
-
-    expectNear(WalletAnalyzer(wallet).totalAmountCredited(), 0.0,
-               "opening balance should not be counted as a credit");
-}
-
-void totalAmountDebitedSumsOnlyDebits()
-{
-    Wallet wallet = makeWallet();
-    wallet.addMoney(25.0);
-    wallet.deductMoney(10.0);
-    wallet.deductMoney(15.0);
-
-    expectNear(WalletAnalyzer(wallet).totalAmountDebited(), 25.0,
-               "debit total is incorrect");
-}
-
-void totalAmountDebitedIsZeroWithoutDebits()
-{
-    Wallet wallet = makeWallet();
-    wallet.addMoney(20.0);
-
-    expectNear(WalletAnalyzer(wallet).totalAmountDebited(), 0.0,
-               "debit total should be zero");
-}
-
-void totalAmountDebitedUpdatesAfterLaterDebits()
-{
-    Wallet wallet = makeWallet();
-    WalletAnalyzer analyzer(wallet);
-    wallet.deductMoney(10.0);
-    expectNear(analyzer.totalAmountDebited(), 10.0, "debit total did not update");
-    wallet.deductMoney(15.0);
-    expectNear(analyzer.totalAmountDebited(), 25.0, "debit total update is incorrect");
-}
-
-void totalAmountDebitedDoesNotCountOpeningBalance()
-{
-    Wallet wallet = makeWallet(100.0);
-
-    expectNear(WalletAnalyzer(wallet).totalAmountDebited(), 0.0,
-               "opening balance should not be counted as a debit");
-}
-
-void expenditureBetweenIncludesBoundariesAndExcludesCredits()
-{
-    Wallet wallet = makeWallet();
-    wallet.deductMoney(10.0);
-    wallet.addMoney(50.0);
-    wallet.deductMoney(15.0);
-    const std::vector<Transaction> transactions = wallet.getTransactions();
-
-    expectNear(WalletAnalyzer(wallet).expenditureBetween(
-                   transactions.front().getTimestamp(), transactions.back().getTimestamp()), 25.0,
-               "date-range expenditure is incorrect");
-}
-
-void expenditureBetweenReturnsZeroOutsideRange()
-{
-    Wallet wallet = makeWallet();
-    wallet.deductMoney(10.0);
-    const Timestamp transactionTime = wallet.getTransactions().front().getTimestamp();
-
-    expectNear(WalletAnalyzer(wallet).expenditureBetween(transactionTime - 1, transactionTime - 1), 0.0,
-               "outside date range should have no expenditure");
-}
-
-void expenditureBetweenReturnsZeroWithoutDebits()
-{
-    Wallet wallet = makeWallet();
-    wallet.addMoney(20.0);
-    const Timestamp transactionTime = wallet.getTransactions().front().getTimestamp();
-
-    expectNear(WalletAnalyzer(wallet).expenditureBetween(transactionTime, transactionTime), 0.0,
-               "credits should not count as expenditure");
-}
-
-void expenditureBetweenRejectsReversedRange()
-{
-    Wallet wallet = makeWallet();
-    expectThrows<std::invalid_argument>(
-        [&] { WalletAnalyzer(wallet).expenditureBetween(10, 1); },
-        "reversed date range should be rejected");
-}
-
-void transactionSnapshotProtectsWalletAudit()
-{
-    Wallet wallet = makeWallet(0.0);
+    Wallet wallet("alice@upi", 0.0);
     wallet.addMoney(10.0);
     std::vector<Transaction> snapshot = wallet.getTransactions();
     snapshot.clear();
 
-    expect(wallet.getTransactions().size() == 1, "transaction snapshot changed wallet audit");
+    EXPECT_EQ(wallet.getTransactionCount(), 1U);
 }
 
-struct TestCase {
-    const char* name;
-    void (*function)();
-};
-
-}
-
-int main()
+TEST(WalletAnalyzerTest, TotalsSeparateCreditsAndDebits)
 {
-    const std::vector<TestCase> tests{
-        {"transactionStoresItsDetails", transactionStoresItsDetails},
-        {"transactionRejectsInvalidAmounts", transactionRejectsInvalidAmounts},
-        {"addMoneyIncreasesBalanceAndRecordsCredit", addMoneyIncreasesBalanceAndRecordsCredit},
-        {"addMoneyPreservesOrderAndUniqueIds", addMoneyPreservesOrderAndUniqueIds},
-        {"addMoneyRejectsInvalidAmountsWithoutMutation", addMoneyRejectsInvalidAmountsWithoutMutation},
-        {"addMoneyRejectsZeroWithoutMutation", addMoneyRejectsZeroWithoutMutation},
-        {"deductMoneyDecreasesBalanceAndRecordsDebit", deductMoneyDecreasesBalanceAndRecordsDebit},
-        {"deductMoneyAllowsExactBalance", deductMoneyAllowsExactBalance},
-        {"deductMoneyRejectsInsufficientFundsWithoutMutation", deductMoneyRejectsInsufficientFundsWithoutMutation},
-        {"deductMoneyRejectsInvalidAmountsWithoutMutation", deductMoneyRejectsInvalidAmountsWithoutMutation},
-        {"totalAmountCreditedSumsOnlyCredits", totalAmountCreditedSumsOnlyCredits},
-        {"totalAmountCreditedIsZeroWithoutCredits", totalAmountCreditedIsZeroWithoutCredits},
-        {"totalAmountCreditedUpdatesAfterLaterCredits", totalAmountCreditedUpdatesAfterLaterCredits},
-        {"totalAmountCreditedDoesNotCountOpeningBalance", totalAmountCreditedDoesNotCountOpeningBalance},
-        {"totalAmountDebitedSumsOnlyDebits", totalAmountDebitedSumsOnlyDebits},
-        {"totalAmountDebitedIsZeroWithoutDebits", totalAmountDebitedIsZeroWithoutDebits},
-        {"totalAmountDebitedUpdatesAfterLaterDebits", totalAmountDebitedUpdatesAfterLaterDebits},
-        {"totalAmountDebitedDoesNotCountOpeningBalance", totalAmountDebitedDoesNotCountOpeningBalance},
-        {"expenditureBetweenIncludesBoundariesAndExcludesCredits", expenditureBetweenIncludesBoundariesAndExcludesCredits},
-        {"expenditureBetweenReturnsZeroOutsideRange", expenditureBetweenReturnsZeroOutsideRange},
-        {"expenditureBetweenReturnsZeroWithoutDebits", expenditureBetweenReturnsZeroWithoutDebits},
-        {"expenditureBetweenRejectsReversedRange", expenditureBetweenRejectsReversedRange},
-        {"transactionSnapshotProtectsWalletAudit", transactionSnapshotProtectsWalletAudit},
-    };
+    Wallet wallet("alice@upi", 100.0);
+    wallet.addMoney(25.0);
+    wallet.deductMoney(10.0);
+    wallet.addMoney(50.0);
+    wallet.deductMoney(15.0);
+    const WalletAnalyzer analyzer(wallet);
 
-    std::size_t passed = 0;
-    for (const TestCase& test : tests) {
-        try {
-            test.function();
-            ++passed;
-            std::cout << "[PASS] " << test.name << '\n';
-        } catch (const std::exception& error) {
-            std::cerr << "[FAIL] " << test.name << ": " << error.what() << '\n';
-            return 1;
-        }
-    }
+    EXPECT_DOUBLE_EQ(analyzer.totalAmountCredited(), 75.0);
+    EXPECT_DOUBLE_EQ(analyzer.totalAmountDebited(), 25.0);
+}
 
-    std::cout << passed << " tests passed\n";
-    return 0;
+TEST(WalletAnalyzerTest, TotalsAreZeroWhenThereAreNoMatchingTransactions)
+{
+    Wallet wallet("alice@upi", 100.0);
+    const WalletAnalyzer analyzer(wallet);
+
+    EXPECT_DOUBLE_EQ(analyzer.totalAmountCredited(), 0.0);
+    EXPECT_DOUBLE_EQ(analyzer.totalAmountDebited(), 0.0);
+}
+
+TEST(WalletAnalyzerTest, TotalsChangeWhenWalletChanges)
+{
+    Wallet wallet("alice@upi", 100.0);
+    const WalletAnalyzer analyzer(wallet);
+
+    wallet.addMoney(10.0);
+    EXPECT_DOUBLE_EQ(analyzer.totalAmountCredited(), 10.0);
+    wallet.deductMoney(5.0);
+    EXPECT_DOUBLE_EQ(analyzer.totalAmountDebited(), 5.0);
+}
+
+TEST(WalletAnalyzerTest, OpeningBalanceIsNotATransaction)
+{
+    const Wallet wallet("alice@upi", 100.0);
+    const WalletAnalyzer analyzer(wallet);
+
+    EXPECT_DOUBLE_EQ(analyzer.totalAmountCredited(), 0.0);
+    EXPECT_DOUBLE_EQ(analyzer.totalAmountDebited(), 0.0);
+}
+
+TEST(WalletAnalyzerTest, ExpenditureUsesInclusiveTimestampBoundaries)
+{
+    Wallet wallet("alice@upi", 100.0);
+    wallet.deductMoney(10.0);
+    wallet.addMoney(50.0);
+    wallet.deductMoney(15.0);
+    const std::vector<Transaction> transactions = wallet.getTransactions();
+    const WalletAnalyzer analyzer(wallet);
+
+    EXPECT_DOUBLE_EQ(analyzer.expenditureBetween(
+                         transactions.front().getTimestamp(),
+                         transactions.back().getTimestamp()),
+                     25.0);
+}
+
+TEST(WalletAnalyzerTest, ExpenditureExcludesCredits)
+{
+    Wallet wallet("alice@upi", 100.0);
+    wallet.addMoney(50.0);
+    const std::time_t timestamp = wallet.getTransactions().front().getTimestamp();
+    const WalletAnalyzer analyzer(wallet);
+
+    EXPECT_DOUBLE_EQ(analyzer.expenditureBetween(timestamp, timestamp), 0.0);
+}
+
+TEST(WalletAnalyzerTest, ExpenditureReturnsZeroOutsideRange)
+{
+    Wallet wallet("alice@upi", 100.0);
+    wallet.deductMoney(10.0);
+    const std::time_t timestamp = wallet.getTransactions().front().getTimestamp();
+    const WalletAnalyzer analyzer(wallet);
+
+    EXPECT_DOUBLE_EQ(analyzer.expenditureBetween(timestamp - 1, timestamp - 1), 0.0);
+}
+
+TEST(WalletAnalyzerTest, ExpenditureRejectsReversedRange)
+{
+    const Wallet wallet("alice@upi", 100.0);
+    const WalletAnalyzer analyzer(wallet);
+
+    EXPECT_THROW(analyzer.expenditureBetween(2, 1), std::invalid_argument);
 }

@@ -1,0 +1,19 @@
+classDiagram
+    direction LR
+
+    class Professor {
+        + teach() void
+        + conductResearch() void
+    }
+    class Department {
+        - vector~Professor~ profs
+        + hire(Professor) void
+    }
+    class University {
+        - string name
+        - vector~Department~ departments
+        + awardDegrees() void
+    }
+
+    University "1" o-- "1..*" Department
+    Department "1" o-- "1..*" Professor
