@@ -1,4 +1,7 @@
 target/
+build/
+.vs/
+*.exe
 .idea/
 *.iml
 out/
