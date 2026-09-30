@@ -10,9 +10,8 @@ Amounts must be greater than zero. Invalid amounts and overdrafts throw
 `std::invalid_argument` before changing wallet state. The initial balance is not
 recorded as a transfer; only calls to `addMoney` and `deductMoney` create audit entries.
 
-For a simple lab-friendly implementation, a timestamp is a `long long` sequence number.
-Each new wallet transaction receives the next number, so the audit remains chronological
-without requiring a date/time library.
+Transactions use `std::time_t` timestamps generated with `std::time(nullptr)`, avoiding
+the heavier `chrono` library while retaining real time values for date-range analysis.
 
 The implementation uses C++17, CMake, and a dependency-free test executable.
 

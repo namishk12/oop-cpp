@@ -1,5 +1,6 @@
 #include "Wallet.h"
 
+#include <ctime>
 #include <stdexcept>
 
 namespace {
@@ -8,12 +9,6 @@ std::string nextTransactionId()
 {
     static unsigned long long nextId = 1;
     return "transaction-" + std::to_string(nextId++);
-}
-
-Transaction::Timestamp nextTimestamp()
-{
-    static Transaction::Timestamp timestamp = 1;
-    return timestamp++;
 }
 
 }
@@ -99,7 +94,7 @@ void Wallet::validateTransactionAmount(double amount)
 
 Transaction Wallet::createTransaction(double amount, bool credit) const
 {
-    return Transaction(nextTransactionId(), amount, credit, nextTimestamp());
+    return Transaction(nextTransactionId(), amount, credit, std::time(nullptr));
 }
 
 void Wallet::appendTransaction(Transaction transaction)

@@ -1,10 +1,11 @@
 #pragma once
 
+#include <ctime>
 #include <string>
 
 class Transaction {
 public:
-    using Timestamp = long long;
+    using Timestamp = std::time_t;
 
     Transaction(std::string transactionId,
                 double amount,

@@ -1,5 +1,6 @@
 #include "WalletAnalyzer.h"
 
+#include <ctime>
 #include <iostream>
 #include <stdexcept>
 #include <string>
@@ -44,7 +45,7 @@ void expectThrows(Function&& function, const std::string& message)
 
 void transactionStoresItsDetails()
 {
-    const Timestamp timestamp = 42;
+    const Timestamp timestamp = std::time(nullptr);
     Transaction transaction("txn-1", 125.50, true, timestamp);
 
     expect(transaction.getTransactionId() == "txn-1", "transaction id was not stored");
@@ -56,10 +57,10 @@ void transactionStoresItsDetails()
 void transactionRejectsInvalidAmounts()
 {
     expectThrows<std::invalid_argument>(
-        [] { Transaction("txn-negative", -1.0, true, 42); },
+        [] { Transaction("txn-negative", -1.0, true, std::time(nullptr)); },
         "negative transaction amount should be rejected");
     expectThrows<std::invalid_argument>(
-        [] { Transaction("txn-zero", 0.0, true, 42); },
+        [] { Transaction("txn-zero", 0.0, true, std::time(nullptr)); },
         "zero transaction amount should be rejected");
 }
 

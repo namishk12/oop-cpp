@@ -27,7 +27,7 @@ Transaction::Transaction(std::string transactionId,
 Transaction::Transaction(std::string transactionId,
                          double amount,
                          bool creditTransaction)
-    : Transaction(transactionId, amount, creditTransaction, 0)
+    : Transaction(transactionId, amount, creditTransaction, std::time(nullptr))
 {
 }
 
@@ -35,7 +35,7 @@ Transaction::Transaction(double amount, bool creditTransaction)
     : Transaction(nextStandaloneTransactionId(),
                   amount,
                   creditTransaction,
-                  0)
+                  std::time(nullptr))
 {
 }
 
