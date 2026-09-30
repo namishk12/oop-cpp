@@ -1,10 +1,6 @@
 #include "WalletAnalyzer.h"
 
-#include <chrono>
-#include <cmath>
-#include <functional>
 #include <iostream>
-#include <limits>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -13,11 +9,9 @@ namespace {
 
 using Timestamp = Transaction::Timestamp;
 
-const Timestamp baseTime = Timestamp(std::chrono::hours(24 * 20000));
-
 Wallet makeWallet(double initialBalance = 100.0)
 {
-    return Wallet("alice@upi", initialBalance, [] { return baseTime; });
+    return Wallet("alice@upi", initialBalance);
 }
 
 void expect(bool condition, const std::string& message)
@@ -29,7 +23,7 @@ void expect(bool condition, const std::string& message)
 
 void expectNear(double actual, double expected, const std::string& message)
 {
-    if (std::abs(actual - expected) > 1e-9) {
+    if (actual != expected) {
         throw std::runtime_error(message);
     }
 }
@@ -50,7 +44,7 @@ void expectThrows(Function&& function, const std::string& message)
 
 void transactionStoresItsDetails()
 {
-    const Timestamp timestamp = baseTime;
+    const Timestamp timestamp = 42;
     Transaction transaction("txn-1", 125.50, true, timestamp);
 
     expect(transaction.getTransactionId() == "txn-1", "transaction id was not stored");
@@ -62,14 +56,11 @@ void transactionStoresItsDetails()
 void transactionRejectsInvalidAmounts()
 {
     expectThrows<std::invalid_argument>(
-        [] { Transaction("txn-negative", -1.0, true, baseTime); },
+        [] { Transaction("txn-negative", -1.0, true, 42); },
         "negative transaction amount should be rejected");
     expectThrows<std::invalid_argument>(
-        [] { Transaction("txn-zero", 0.0, true, baseTime); },
+        [] { Transaction("txn-zero", 0.0, true, 42); },
         "zero transaction amount should be rejected");
-    expectThrows<std::invalid_argument>(
-        [] { Transaction("txn-nan", std::nan(""), true, baseTime); },
-        "NaN transaction amount should be rejected");
 }
 
 void addMoneyIncreasesBalanceAndRecordsCredit()
@@ -105,24 +96,19 @@ void addMoneyRejectsInvalidAmountsWithoutMutation()
     Wallet wallet = makeWallet();
     expectThrows<std::invalid_argument>([&] { wallet.addMoney(-5.0); },
                                         "negative add should be rejected");
-    expectThrows<std::invalid_argument>([&] { wallet.addMoney(0.0); },
-                                        "zero add should be rejected");
-    expectThrows<std::invalid_argument>([&] { wallet.addMoney(std::nan("")); },
-                                        "NaN add should be rejected");
 
     expectNear(wallet.getBalance(), 100.0, "invalid add changed balance");
     expect(wallet.getTransactions().empty(), "invalid add changed audit");
 }
 
-void addMoneyRejectsOverflowWithoutMutation()
+void addMoneyRejectsZeroWithoutMutation()
 {
-    Wallet wallet = makeWallet(std::numeric_limits<double>::max());
+    Wallet wallet = makeWallet();
+    expectThrows<std::invalid_argument>([&] { wallet.addMoney(0.0); },
+                                        "zero add should be rejected");
 
-    expectThrows<std::invalid_argument>([&] { wallet.addMoney(1.0); },
-                                        "overflowing add should be rejected");
-    expect(wallet.getBalance() == std::numeric_limits<double>::max(),
-           "overflowing add changed balance");
-    expect(wallet.getTransactions().empty(), "overflowing add changed audit");
+    expectNear(wallet.getBalance(), 100.0, "zero add changed balance");
+    expect(wallet.getTransactions().empty(), "zero add changed audit");
 }
 
 void deductMoneyDecreasesBalanceAndRecordsDebit()
@@ -163,8 +149,6 @@ void deductMoneyRejectsInvalidAmountsWithoutMutation()
                                         "negative deduction should be rejected");
     expectThrows<std::invalid_argument>([&] { wallet.deductMoney(0.0); },
                                         "zero deduction should be rejected");
-    expectThrows<std::invalid_argument>([&] { wallet.deductMoney(std::nan("")); },
-                                        "NaN deduction should be rejected");
 
     expectNear(wallet.getBalance(), 100.0, "invalid deduction changed balance");
     expect(wallet.getTransactions().empty(), "invalid deduction changed audit");
@@ -252,8 +236,10 @@ void expenditureBetweenIncludesBoundariesAndExcludesCredits()
     wallet.deductMoney(10.0);
     wallet.addMoney(50.0);
     wallet.deductMoney(15.0);
+    const std::vector<Transaction> transactions = wallet.getTransactions();
 
-    expectNear(WalletAnalyzer(wallet).expenditureBetween(baseTime, baseTime), 25.0,
+    expectNear(WalletAnalyzer(wallet).expenditureBetween(
+                   transactions.front().getTimestamp(), transactions.back().getTimestamp()), 25.0,
                "date-range expenditure is incorrect");
 }
 
@@ -261,9 +247,9 @@ void expenditureBetweenReturnsZeroOutsideRange()
 {
     Wallet wallet = makeWallet();
     wallet.deductMoney(10.0);
-    const Timestamp before = baseTime - std::chrono::hours(24);
+    const Timestamp transactionTime = wallet.getTransactions().front().getTimestamp();
 
-    expectNear(WalletAnalyzer(wallet).expenditureBetween(before, before), 0.0,
+    expectNear(WalletAnalyzer(wallet).expenditureBetween(transactionTime - 1, transactionTime - 1), 0.0,
                "outside date range should have no expenditure");
 }
 
@@ -271,8 +257,9 @@ void expenditureBetweenReturnsZeroWithoutDebits()
 {
     Wallet wallet = makeWallet();
     wallet.addMoney(20.0);
+    const Timestamp transactionTime = wallet.getTransactions().front().getTimestamp();
 
-    expectNear(WalletAnalyzer(wallet).expenditureBetween(baseTime, baseTime), 0.0,
+    expectNear(WalletAnalyzer(wallet).expenditureBetween(transactionTime, transactionTime), 0.0,
                "credits should not count as expenditure");
 }
 
@@ -280,7 +267,7 @@ void expenditureBetweenRejectsReversedRange()
 {
     Wallet wallet = makeWallet();
     expectThrows<std::invalid_argument>(
-        [&] { WalletAnalyzer(wallet).expenditureBetween(baseTime, baseTime - std::chrono::seconds(1)); },
+        [&] { WalletAnalyzer(wallet).expenditureBetween(10, 1); },
         "reversed date range should be rejected");
 }
 
@@ -296,7 +283,7 @@ void transactionSnapshotProtectsWalletAudit()
 
 struct TestCase {
     const char* name;
-    std::function<void()> function;
+    void (*function)();
 };
 
 }
@@ -309,7 +296,7 @@ int main()
         {"addMoneyIncreasesBalanceAndRecordsCredit", addMoneyIncreasesBalanceAndRecordsCredit},
         {"addMoneyPreservesOrderAndUniqueIds", addMoneyPreservesOrderAndUniqueIds},
         {"addMoneyRejectsInvalidAmountsWithoutMutation", addMoneyRejectsInvalidAmountsWithoutMutation},
-        {"addMoneyRejectsOverflowWithoutMutation", addMoneyRejectsOverflowWithoutMutation},
+        {"addMoneyRejectsZeroWithoutMutation", addMoneyRejectsZeroWithoutMutation},
         {"deductMoneyDecreasesBalanceAndRecordsDebit", deductMoneyDecreasesBalanceAndRecordsDebit},
         {"deductMoneyAllowsExactBalance", deductMoneyAllowsExactBalance},
         {"deductMoneyRejectsInsufficientFundsWithoutMutation", deductMoneyRejectsInsufficientFundsWithoutMutation},

@@ -8,8 +8,8 @@ public:
 
     double totalAmountCredited() const;
     double totalAmountDebited() const;
-    double expenditureBetween(Transaction::Timestamp startDate,
-                              Transaction::Timestamp endDate) const;
+    double expenditureBetween(Transaction::Timestamp startTimestamp,
+                              Transaction::Timestamp endTimestamp) const;
 
 private:
     const Wallet& wallet;

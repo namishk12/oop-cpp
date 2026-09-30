@@ -1,22 +1,19 @@
 #include "Wallet.h"
 
-#include <atomic>
-#include <cmath>
-#include <cstdint>
 #include <stdexcept>
-#include <utility>
 
 namespace {
 
-Transaction::Timestamp systemNow()
-{
-    return std::chrono::system_clock::now();
-}
-
 std::string nextTransactionId()
 {
-    static std::atomic<std::uint64_t> nextId{1};
-    return "transaction-" + std::to_string(nextId.fetch_add(1));
+    static unsigned long long nextId = 1;
+    return "transaction-" + std::to_string(nextId++);
+}
+
+Transaction::Timestamp nextTimestamp()
+{
+    static Transaction::Timestamp timestamp = 1;
+    return timestamp++;
 }
 
 }
@@ -27,33 +24,21 @@ Wallet::Wallet()
 }
 
 Wallet::Wallet(std::string upiId)
-    : Wallet(std::move(upiId), 0.0)
+    : Wallet(upiId, 0.0)
 {
 }
 
 Wallet::Wallet(std::string upiId, double initialBalance)
-    : Wallet(std::move(upiId), initialBalance, systemNow)
-{
-}
-
-Wallet::Wallet(std::string upiId, double initialBalance, Clock clock)
-    : upiId(std::move(upiId)),
-      balance(initialBalance),
-      clock(std::move(clock))
+    : upiId(upiId),
+      balance(initialBalance)
 {
     validateInitialBalance(initialBalance);
-    if (!this->clock) {
-        throw std::invalid_argument("clock cannot be empty");
-    }
 }
 
 void Wallet::addMoney(double amount)
 {
     validateTransactionAmount(amount);
     const double newBalance = balance + amount;
-    if (!std::isfinite(newBalance)) {
-        throw std::invalid_argument("Balance cannot exceed the finite double range");
-    }
 
     appendTransaction(createTransaction(amount, true));
     balance = newBalance;
@@ -100,24 +85,24 @@ std::size_t Wallet::getTransactionCount() const noexcept
 
 void Wallet::validateInitialBalance(double initialBalance)
 {
-    if (!std::isfinite(initialBalance) || initialBalance < 0.0) {
-        throw std::invalid_argument("Initial balance must be finite and non-negative");
+    if (initialBalance != initialBalance || initialBalance < 0.0) {
+        throw std::invalid_argument("Initial balance must be non-negative");
     }
 }
 
 void Wallet::validateTransactionAmount(double amount)
 {
-    if (!std::isfinite(amount) || amount <= 0.0) {
-        throw std::invalid_argument("Amount must be finite and greater than zero");
+    if (amount != amount || amount <= 0.0) {
+        throw std::invalid_argument("Amount must be greater than zero");
     }
 }
 
 Transaction Wallet::createTransaction(double amount, bool credit) const
 {
-    return Transaction(nextTransactionId(), amount, credit, clock());
+    return Transaction(nextTransactionId(), amount, credit, nextTimestamp());
 }
 
 void Wallet::appendTransaction(Transaction transaction)
 {
-    transactions.push_back(std::move(transaction));
+    transactions.push_back(transaction);
 }

@@ -1,22 +1,13 @@
 #include "Transaction.h"
 
-#include <atomic>
-#include <cmath>
-#include <cstdint>
 #include <stdexcept>
-#include <utility>
 
 namespace {
 
-Transaction::Timestamp now()
-{
-    return std::chrono::system_clock::now();
-}
-
 std::string nextStandaloneTransactionId()
 {
-    static std::atomic<std::uint64_t> nextId{1};
-    return "transaction-" + std::to_string(nextId.fetch_add(1));
+    static unsigned long long nextId = 1;
+    return "transaction-" + std::to_string(nextId++);
 }
 
 }
@@ -25,7 +16,7 @@ Transaction::Transaction(std::string transactionId,
                          double amount,
                          bool creditTransaction,
                          Timestamp timestamp)
-    : transactionId(std::move(transactionId)),
+    : transactionId(transactionId),
       amount(amount),
       creditTransaction(creditTransaction),
       timestamp(timestamp)
@@ -36,7 +27,7 @@ Transaction::Transaction(std::string transactionId,
 Transaction::Transaction(std::string transactionId,
                          double amount,
                          bool creditTransaction)
-    : Transaction(std::move(transactionId), amount, creditTransaction, now())
+    : Transaction(transactionId, amount, creditTransaction, 0)
 {
 }
 
@@ -44,7 +35,7 @@ Transaction::Transaction(double amount, bool creditTransaction)
     : Transaction(nextStandaloneTransactionId(),
                   amount,
                   creditTransaction,
-                  now())
+                  0)
 {
 }
 
@@ -80,7 +71,7 @@ Transaction::Timestamp Transaction::getTimestamp() const noexcept
 
 void Transaction::validateAmount(double value)
 {
-    if (!std::isfinite(value) || value <= 0.0) {
-        throw std::invalid_argument("Transaction amount must be finite and greater than zero");
+    if (value != value || value <= 0.0) {
+        throw std::invalid_argument("Transaction amount must be greater than zero");
     }
 }

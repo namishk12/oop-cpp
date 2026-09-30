@@ -29,17 +29,17 @@ double WalletAnalyzer::totalAmountDebited() const
     return total;
 }
 
-double WalletAnalyzer::expenditureBetween(Transaction::Timestamp startDate,
-                                          Transaction::Timestamp endDate) const
+double WalletAnalyzer::expenditureBetween(Transaction::Timestamp startTimestamp,
+                                          Transaction::Timestamp endTimestamp) const
 {
-    if (startDate > endDate) {
-        throw std::invalid_argument("startDate cannot be after endDate");
+    if (startTimestamp > endTimestamp) {
+        throw std::invalid_argument("startTimestamp cannot be after endTimestamp");
     }
 
     double expenditure = 0.0;
     for (const Transaction& transaction : wallet.getTransactions()) {
         const Transaction::Timestamp timestamp = transaction.getTimestamp();
-        const bool inRange = timestamp >= startDate && timestamp <= endDate;
+        const bool inRange = timestamp >= startTimestamp && timestamp <= endTimestamp;
         if (inRange && !transaction.isCreditTransaction()) {
             expenditure += transaction.getAmount();
         }

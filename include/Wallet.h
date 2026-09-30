@@ -2,18 +2,14 @@
 
 #include "Transaction.h"
 
-#include <functional>
 #include <string>
 #include <vector>
 
 class Wallet {
 public:
-    using Clock = std::function<Transaction::Timestamp()>;
-
     Wallet();
     explicit Wallet(std::string upiId);
     Wallet(std::string upiId, double initialBalance);
-    Wallet(std::string upiId, double initialBalance, Clock clock);
 
     void addMoney(double amount);
     void deductMoney(double amount);
@@ -34,5 +30,4 @@ private:
     std::string upiId;
     double balance;
     std::vector<Transaction> transactions;
-    Clock clock;
 };

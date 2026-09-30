@@ -1,11 +1,10 @@
 #pragma once
 
-#include <chrono>
 #include <string>
 
 class Transaction {
 public:
-    using Timestamp = std::chrono::system_clock::time_point;
+    using Timestamp = long long;
 
     Transaction(std::string transactionId,
                 double amount,
