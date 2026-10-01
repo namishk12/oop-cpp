@@ -26,3 +26,13 @@ jobs:
 
       - name: Build midsem practice starters
         run: cmake --build build-midsem --parallel
+
+      - name: Compile DOCX practice question starters
+        run: |
+          for question in practice/docx_v2/*; do
+            if [ -f "$question/CMakeLists.txt" ]; then
+              name=$(basename "$question")
+              cmake -S "$question" -B "build-docx-$name" -DCMAKE_BUILD_TYPE=Debug
+              cmake --build "build-docx-$name" --parallel
+            fi
+          done

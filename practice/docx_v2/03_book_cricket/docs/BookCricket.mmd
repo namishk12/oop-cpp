@@ -1,0 +1,39 @@
+classDiagram
+    class DeliveryOutcome {
+        <<enumeration>>
+        Runs
+        Wide
+        NoEffect
+        Out
+    }
+    class DeliveryResult {
+        +DeliveryOutcome outcome
+        +int runs
+    }
+    class BookCricketRules {
+        +static DeliveryResult fromPage(int pageNumber)
+    }
+    class Innings {
+        -string batsman_
+        -int overs_
+        -int runs_
+        -int legalBalls_
+        -bool out_
+        +Innings(string, int)
+        +void deliver(int pageNumber)
+        +bool isComplete() const
+        +bool isOut() const
+        +int runs() const
+        +int legalBalls() const
+    }
+    class Match {
+        -Innings inningsOne_
+        -Innings inningsTwo_
+        +Match(string, string, int, bool)
+        +void play(vector~int~, vector~int~)
+        +MatchResult result() const
+        +string winnerName() const
+    }
+    BookCricketRules ..> DeliveryResult : creates
+    Innings ..> BookCricketRules : uses
+    Match *-- Innings : owns two

@@ -1,0 +1,31 @@
+classDiagram
+    class Day {
+        -int year_
+        -int month_
+        -int date_
+        +Day(int, int, int)
+        +int getYear() const
+        +int getMonth() const
+        +int getDate() const
+        +int daysFrom(const Day&) const
+        +Day plusYears(int) const
+    }
+    class Person {
+        -string name_
+        -Day birthday
+        +Person(string, Day)
+        +string getName() const
+        +Day getBirthday() const
+        +void markBirthdayPassed()
+    }
+    class BirthdayList {
+        -vector~Person~ people
+        +void addPerson(Person)
+        +Person personFor(string) const
+        +Day birthdayFor(string) const
+        +int daysUntilNextBirthday(Day) const
+        +void markBirthdayPassed(string)
+        +size_t size() const
+    }
+    Person *-- Day : owns
+    BirthdayList *-- Person : owns many

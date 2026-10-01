@@ -1,0 +1,22 @@
+classDiagram
+    class Day {
+        -int year_
+        -int month_
+        -int date_
+        +Day(int, int, int)
+        +int getYear() const
+        +int getMonth() const
+        +int getDate() const
+        +int daysFrom(const Day&) const
+        +Day plusYears(int) const
+    }
+    class BirthdayList {
+        -vector~string~ names_
+        -vector~Day~ birthdays_
+        +void addBirthday(string, Day)
+        +Day birthdayFor(string) const
+        +int daysUntilNextBirthday(Day) const
+        +void markBirthdayPassed(string)
+        +size_t size() const
+    }
+    BirthdayList --> Day : uses

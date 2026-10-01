@@ -11,6 +11,8 @@ object-oriented programming reference material. It contains:
 - Mermaid class diagrams under `docs/diagrams/`.
 - A slide-based C++ midsem practice pack under `practice/midsem/` with four
   intentionally incomplete TDD projects, GoogleTest tests, CMake, and UML.
+- DOCX-based question starters under `practice/docx_v2/` for Birthday List,
+  Person-based Birthday List, and Book Cricket.
 
 The wallet uses `std::time_t` timestamps generated with `std::time(nullptr)`. Invalid
 amounts and overdrafts throw `std::invalid_argument` before changing wallet state.
