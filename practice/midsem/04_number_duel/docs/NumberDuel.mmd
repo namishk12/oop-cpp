@@ -1,0 +1,33 @@
+classDiagram
+    class Feedback {
+        <<enumeration>>
+        TOO_LOW
+        TOO_HIGH
+        DIRECT_HIT
+    }
+    class Player {
+        -string name_
+        -int target_
+        -int attempts
+        +Player(string, int)
+        +string getName() const
+        +int getTarget() const
+        +int getAttempts() const
+        +Feedback evaluateGuess(int)
+        +int score() const
+    }
+    class NumberDuelGame {
+        -Player first_
+        -Player second_
+        -int activePlayer_
+        -bool gameOver_
+        -int winner_
+        +NumberDuelGame(Player, Player)
+        +Feedback submitGuess(int)
+        +bool isGameOver() const
+        +Player activePlayer() const
+        +string winnerName() const
+        +int winnerScore() const
+    }
+    Player --> Feedback : produces
+    NumberDuelGame *-- Player : owns two

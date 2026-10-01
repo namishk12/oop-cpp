@@ -1,0 +1,31 @@
+classDiagram
+    class Transaction {
+        -string transactionId_
+        -double amount_
+        -bool creditTransaction
+        -time_t timestamp
+        +Transaction(string, double, bool, time_t)
+        +string getTransactionId() const
+        +double getAmount() const
+        +bool isCreditTransaction() const
+        +time_t getTimestamp() const
+    }
+    class Wallet {
+        -string walletId_
+        -double balance
+        -vector~Transaction~ transactions
+        +Wallet(string, double)
+        +void addMoney(double)
+        +void deductMoney(double)
+        +double getBalance() const
+        +vector~Transaction~ getTransactions() const
+    }
+    class WalletAnalyzer {
+        -Wallet wallet
+        +WalletAnalyzer(const Wallet&)
+        +double totalAmountCredited() const
+        +double totalAmountDebited() const
+        +double expenditureBetween(time_t, time_t) const
+    }
+    Wallet *-- Transaction : owns many
+    WalletAnalyzer o-- Wallet : analyzes

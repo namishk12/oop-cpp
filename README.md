@@ -9,6 +9,8 @@ object-oriented programming reference material. It contains:
 - Polymorphism/sorting: `State` with natural population ordering and custom area ordering.
 - UPI wallet: balance constraints, transaction history, and analysis methods.
 - Mermaid class diagrams under `docs/diagrams/`.
+- A slide-based C++ midsem practice pack under `practice/midsem/` with four
+  intentionally incomplete TDD projects, GoogleTest tests, CMake, and UML.
 
 The wallet uses `std::time_t` timestamps generated with `std::time(nullptr)`. Invalid
 amounts and overdrafts throw `std::invalid_argument` before changing wallet state.
@@ -33,6 +35,7 @@ include/       public class headers
 src/           class implementations and example applications
 tests/         GoogleTest suites
 docs/diagrams/ Mermaid UML diagrams
+practice/midsem/ exam-style starter projects and question statements
 ```
 
 The code is written as original C++ practice material; it does not copy the Java

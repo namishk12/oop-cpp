@@ -1,0 +1,33 @@
+classDiagram
+    class Shape {
+        <<interface>>
+        +~Shape()
+        +double area() const
+        +double perimeter() const
+        +string name() const
+    }
+    class Circle {
+        -double radius_
+        +Circle(double radius)
+        +double area() const
+        +double perimeter() const
+        +string name() const
+    }
+    class Rectangle {
+        -double width_
+        -double height_
+        +Rectangle(double width, double height)
+        +double area() const
+        +double perimeter() const
+        +string name() const
+    }
+    class ShapeCatalog {
+        -vector~unique_ptr~Shape~~ shapes_
+        +void add(unique_ptr~Shape~ shape)
+        +size_t size() const
+        +double totalArea() const
+        +vector~string~ namesByArea() const
+    }
+    Shape <|-- Circle
+    Shape <|-- Rectangle
+    ShapeCatalog *-- Shape : owns many

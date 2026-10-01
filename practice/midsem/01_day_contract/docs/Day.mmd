@@ -1,0 +1,13 @@
+classDiagram
+    class Day {
+        -int year_
+        -int month_
+        -int date_
+        +Day(int year, int month, int date)
+        +int getYear() const
+        +int getMonth() const
+        +int getDate() const
+        +int daysFrom(const Day& other) const
+        +Day plusDays(int n) const
+        +bool operator<(const Day& other) const
+    }
