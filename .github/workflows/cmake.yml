@@ -20,3 +20,9 @@ jobs:
 
       - name: Test
         run: ctest --test-dir build --output-on-failure
+
+      - name: Configure midsem practice starters
+        run: cmake -S practice/midsem -B build-midsem -DCMAKE_BUILD_TYPE=Debug
+
+      - name: Build midsem practice starters
+        run: cmake --build build-midsem --parallel
